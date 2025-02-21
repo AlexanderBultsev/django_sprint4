@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.shortcuts import redirect, render, get_object_or_404
@@ -7,76 +8,16 @@ from blog.utils import get_all_posts, get_relevant_posts
 from blog.forms import PostForm, UserForm, CommentForm
 
 
-PAGE_NUMBER = 10
-
-
+# Create your views here.
 def index(request):
     template = 'blog/index.html'
 
     post_list = get_relevant_posts(Post.objects)
-    paginator = Paginator(post_list, PAGE_NUMBER)
+    paginator = Paginator(post_list, settings.POSTS_COUNT_ON_HOME_PAGE)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    context = {
-        'page_obj': page_obj,
-    }
-
-    return render(request, template, context)
-
-
-def profile(request, username):
-    template = 'blog/profile.html'
-
-    user = get_object_or_404(User.objects, username=username)
-
-    if request.user == user:
-        posts = get_all_posts(Post.objects).filter(author=user)
-    else:
-        posts = get_relevant_posts(Post.objects).filter(author=user)
-
-    paginator = Paginator(posts, PAGE_NUMBER)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    context = {
-        'profile': user,
-        'page_obj': page_obj,
-    }
-
-    return render(request, template, context)
-
-
-@login_required
-def edit_profile(request):
-    template = 'blog/user.html'
-
-    username = request.user.get_username()
-    print(username)
-
-    instance = get_object_or_404(User, username=username)
-    form = UserForm(request.POST or None, instance=instance)
-    context = {'form': form}
-    if form.is_valid():
-        form.save()
-        return redirect('blog:profile', username=username)
-
-    return render(request, template, context)
-
-
-@login_required
-def create_post(request):
-    template = 'blog/create.html'
-
-    form = PostForm(request.POST or None, request.FILES or None)
-
-    context = {'form': form}
-    if form.is_valid():
-        post = form.save(commit=False)
-        post.author = request.user
-        form.save()
-        return redirect('blog:profile', username=request.user.username)
-
+    context = {'page_obj': page_obj}
     return render(request, template, context)
 
 
@@ -95,6 +36,39 @@ def post_detail(request, post_id):
         'form': form,
         'comments': comments,
     }
+    return render(request, template, context)
+
+
+def category_posts(request, category_slug):
+    template = 'blog/category.html'
+    category = get_object_or_404(
+        Category.objects.filter(is_published=True), slug=category_slug
+    )
+    post_list = get_relevant_posts(
+        category.posts.filter(category=category)
+    )
+
+    paginator = Paginator(post_list, settings.POSTS_COUNT_ON_HOME_PAGE)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {'category': category, 'page_obj': page_obj}
+    return render(request, template, context)
+
+
+@login_required
+def create_post(request):
+    template = 'blog/create.html'
+
+    form = PostForm(request.POST or None, request.FILES or None)
+
+    context = {'form': form}
+    if form.is_valid():
+        post = form.save(commit=False)
+        post.author = request.user
+        form.save()
+        return redirect('blog:profile', username=request.user.get_username())
+
     return render(request, template, context)
 
 
@@ -131,7 +105,7 @@ def delete_post(request, post_id):
     context = {'form': form}
     if request.method == 'POST':
         instance.delete()
-        return redirect('blog:profile', username=request.user.username)
+        return redirect('blog:profile', username=request.user.get_username())
 
     return render(request, template, context)
 
@@ -189,23 +163,37 @@ def delete_comment(request, post_id, comment_id):
     return render(request, template, context)
 
 
-def category_posts(request, category_slug):
-    template = 'blog/category.html'
+def profile(request, username):
+    template = 'blog/profile.html'
 
-    category = get_object_or_404(
-        Category.objects.filter(is_published=True), slug=category_slug
-    )
-    post_list = get_relevant_posts(
-        category.posts
-    )
+    user = get_object_or_404(User.objects, username=username)
 
-    paginator = Paginator(post_list, PAGE_NUMBER)
+    if request.user == user:
+        posts = get_all_posts(Post.objects).filter(author=user)
+    else:
+        posts = get_relevant_posts(Post.objects).filter(author=user)
+
+    paginator = Paginator(posts, settings.POSTS_COUNT_ON_HOME_PAGE)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    context = {
-        'category': category,
-        'page_obj': page_obj,
-    }
+    context = {'profile': user, 'page_obj': page_obj}
+
+    return render(request, template, context)
+
+
+@login_required
+def edit_profile(request):
+    template = 'blog/user.html'
+
+    username = request.user.get_username()
+    print(username)
+
+    instance = get_object_or_404(User, username=username)
+    form = UserForm(request.POST or None, instance=instance)
+    context = {'form': form}
+    if form.is_valid():
+        form.save()
+        return redirect('blog:profile', username=username)
 
     return render(request, template, context)
