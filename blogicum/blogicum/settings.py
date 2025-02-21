@@ -132,6 +132,7 @@ STATICFILES_DIRS = [
 ]
 
 MEDIA_ROOT = BASE_DIR / 'media' 
+
 MEDIA_URL = 'media/'
 
 # Default primary key field type
@@ -140,7 +141,9 @@ MEDIA_URL = 'media/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = 'login'
+
 LOGIN_REDIRECT_URL = 'blog:index'
 
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
-EMAIL_FILE_PATH = BASE_DIR / 'sent_emails' 
+
+EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
