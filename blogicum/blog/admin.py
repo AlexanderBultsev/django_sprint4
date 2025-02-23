@@ -11,6 +11,7 @@ def trunc_text(self):
 trunc_text.short_description = 'Текст'
 
 
+# Register your models here.
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
     list_display = (
